@@ -26,6 +26,10 @@ namespace ZabbixApi
 
         private WebClient _webClient;
 
+        public bool SerializeNullValue { get; set; }
+
+        public bool SerializeDefaultValue { get; set; }
+
         public Context()
         {
             var url = ConfigurationManager.AppSettings["ZabbixApi.url"];
@@ -85,7 +89,8 @@ namespace ZabbixApi
             _webClient.Headers.Add(values);
 
             var settings = new JsonSerializerSettings();
-            settings.NullValueHandling = NullValueHandling.Ignore;
+            settings.NullValueHandling = SerializeNullValue ? NullValueHandling.Include : NullValueHandling.Ignore;
+            settings.DefaultValueHandling = SerializeDefaultValue ? DefaultValueHandling.Include : DefaultValueHandling.Ignore;
             settings.Converters = new JsonConverter[] { new Newtonsoft.Json.Converters.JavaScriptDateTimeConverter() };
 
             var responseData = _webClient.UploadData(_url, Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(request, settings)));

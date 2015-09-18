@@ -14,11 +14,16 @@ namespace ZabbixApi.Services
         where T : EntityBase
         where Y : struct, IConvertible
     {
+        bool Exist(object filter);
         IEnumerable<T> Get(object filter = null, IEnumerable<Y> include = null, Dictionary<string, object> @params = null);
-        IEnumerable<string> Create(IEnumerable<T> entity);
+        IEnumerable<string> Create(IEnumerable<T> entities);
         string Create(T entity);
+        IEnumerable<string> Create(IEnumerable<Tuple<T, Dictionary<string, object>>> entities);
+        string Create(T entity, Dictionary<string, object> addition);
         IEnumerable<string> Update(IEnumerable<T> entity);
         string Update(T entity);
+        IEnumerable<string> Update(IEnumerable<Tuple<T, Dictionary<string, object>>> entity);
+        string Update(T entity, Dictionary<string, object> addition);
         IEnumerable<string> Delete(IEnumerable<string> ids);
         string Delete(string id);
         IEnumerable<string> Delete(IEnumerable<T> entities);
@@ -45,6 +50,12 @@ namespace ZabbixApi.Services
         }
 
         public CRUDService(IContext context, string className) : base(context, className) { }
+
+        public bool Exist(object filter)
+        {
+            Check.NotNull(filter, "filter");
+            return _context.SendRequest<bool>(filter, _className + ".exists");
+        }
 
         public abstract IEnumerable<T> Get(object filter = null, IEnumerable<Y> include = null, Dictionary<string, object> @params = null);
 
@@ -135,6 +146,27 @@ namespace ZabbixApi.Services
             return Create(new List<T>() { entity }).FirstOrDefault();
         }
 
+        public IEnumerable<string> Create(IEnumerable<Tuple<T, Dictionary<string, object>>> entities)
+        {
+            Check.IEnumerableNotNullOrEmpty<Tuple<T, Dictionary<string, object>>>(entities);
+            IEnumerable<Dictionary<string, object>> @params = Array.ConvertAll(entities.ToArray(), (itm) =>
+            {
+                var entity = new Dictionary<string, object>(itm.Item2);
+                entity.AddIfNotExist(itm.Item1);
+                return entity;
+            });
+            return _context.SendRequest<X>(
+                    @params,
+                    _className + ".create"
+                    ).ids;
+        }
+
+        public string Create(T entity, Dictionary<string, object> addition)
+        {
+            Check.NotNull(entity, "entity");
+            return Create(new List<Tuple<T, Dictionary<string, object>>>() { Tuple.Create<T, Dictionary<string, object>>(entity, addition) }).FirstOrDefault();
+        }
+
         public IEnumerable<string> Update(IEnumerable<T> entities)
         {
             Check.IEnumerableNotNullOrEmpty<T>(entities, "entities");
@@ -150,6 +182,28 @@ namespace ZabbixApi.Services
             Check.EntityHasId(entity);
 
             return Update(new List<T>() { entity }).FirstOrDefault();
+        }
+
+        public IEnumerable<string> Update(IEnumerable<Tuple<T, Dictionary<string, object>>> entities)
+        {
+            Check.IEnumerableNotNullOrEmpty<Tuple<T, Dictionary<string, object>>>(entities);
+            IEnumerable<Dictionary<string, object>> @params = Array.ConvertAll(entities.ToArray(), (itm) =>
+            {
+                var entity = new Dictionary<string, object>(itm.Item2);
+                entity.AddIfNotExist(itm.Item1);
+                return entity;
+            });
+
+            return _context.SendRequest<X>(
+                    @params,
+                    _className + ".update"
+                    ).ids;
+        }
+
+        public string Update(T entity, Dictionary<string, object> addition)
+        {
+            Check.NotNull(entity, "entity");
+            return Update(new List<Tuple<T, Dictionary<string, object>>>() { Tuple.Create<T, Dictionary<string, object>>(entity, addition) }).FirstOrDefault();
         }
 
         public IEnumerable<string> CreateOrUpdate(IEnumerable<T> entities)

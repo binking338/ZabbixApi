@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,6 +21,24 @@ namespace ZabbixApi.Helper
                 dictionary.Add(key, value);
             else
                 dictionary[key] = value;
+        }
+
+        public static void AddIfNotExist<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, object addition)
+        {
+            var additionDic = JsonConvert.DeserializeObject<Dictionary<TKey, TValue>>(JsonConvert.SerializeObject(addition));
+            foreach (var kv in additionDic)
+            {
+                dictionary.AddIfNotExist(kv.Key, kv.Value);
+            }
+        }
+
+        public static void AddOrReplace<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, object addition)
+        {
+            var additionDic = JsonConvert.DeserializeObject<Dictionary<TKey, TValue>>(JsonConvert.SerializeObject(addition));
+            foreach (var kv in additionDic)
+            {
+                dictionary.AddOrReplace(kv.Key, kv.Value);
+            }
         }
     }
 }
